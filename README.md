@@ -22,6 +22,8 @@ SIGTURK 2026 is a shared task focused on **Turkish terminology detection and cor
 
 <img width="940" height="1032" alt="Leaderboard" src="https://github.com/user-attachments/assets/e7b3e4e8-c78c-4fbc-8f45-6e56dd89158b" />
 
+📄 [View full leaderboard with all scores →](LEADERBOARD.md)
+
 ---
 
 ## Subtasks
