@@ -206,6 +206,9 @@ Mean_chrF=...
 - **Zero items evaluated** — check that required fields (`term_pairs`, `edited_target_sentence`, etc.) are present for your task.~~
 
 ---
+## Leaderboard
+<img width="940" height="1032" alt="image" src="https://github.com/user-attachments/assets/e7b3e4e8-c78c-4fbc-8f45-6e56dd89158b" />
+
 
 ## Contact
 
