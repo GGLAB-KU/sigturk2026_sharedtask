@@ -1,10 +1,36 @@
 # SIGTURK 2026 — Shared Task: Evaluation Script and Development Data
 
-This repository provides a **command‑line evaluator** for the SIGTURK 2026 shared task and Development Data. It supports three subtasks on paired JSON files containing **golden set** annotations and **system predictions**:
+SIGTURK 2026 is a shared task focused on **Turkish terminology detection and correction** in scientific text. Given English–Turkish parallel sentences, participating systems must identify English technical terms, provide their correct Turkish equivalents, and produce fluent edited target sentences. This repository provides the official command-line evaluator and development data.
 
-1. **Term Detection (English word‑level)** — Precision/Recall/F1 (Macro + Micro)  
-2. **Term Correction (Exact match)** — Accuracy (Macro + Micro)  
-3. **End‑to‑End (sentence quality)** — **Sentence‑level** BLEU and chrF (Macro **only**) computed with `sacrebleu`
+---
+
+## Table of Contents
+
+1. [Leaderboard](#leaderboard)
+2. [Subtasks](#subtasks)
+3. [Directory Layout](#directory-layout)
+4. [Quick Start](#quick-start)
+5. [JSON Schemas](#json-schemas-by-subtask)
+6. [Design Notes](#design-notes)
+7. [Examples](#examples)
+8. [Troubleshooting](#troubleshooting)
+9. [Contact](#contact)
+
+---
+
+## Leaderboard
+
+<img width="940" height="1032" alt="Leaderboard" src="https://github.com/user-attachments/assets/e7b3e4e8-c78c-4fbc-8f45-6e56dd89158b" />
+
+---
+
+## Subtasks
+
+This evaluator supports three subtasks on paired JSON files containing **golden set** annotations and **system predictions**:
+
+1. **Term Detection (English word-level)** — Precision / Recall / F1 (Macro + Micro)
+2. **Term Correction (Exact match)** — Accuracy (Macro + Micro)
+3. **End-to-End (sentence quality)** — Sentence-level BLEU and chrF (Macro only) computed with `sacrebleu`
 
 The evaluator **strictly aligns** records using `(paragraph_id, sentence_id)` and **fails fast** on any mismatch, duplicates, or missing IDs.
 
@@ -34,6 +60,8 @@ sigturk2026_sharedtask/
 └─ README.md
 ```
 
+---
+
 ## Quick Start
 
 ### 1) Requirements
@@ -42,25 +70,36 @@ sigturk2026_sharedtask/
 pip install -r evaluation/requirements.txt
 ```
 
-**requirements.txt** should contain at minimum:
-```
-sacrebleu
-```
-(Any 3.x version is fine.)
+**requirements.txt** must contain:
 
-### 2) Run the evaluator
+```
+sacrebleu==2.4.3
+```
+
+> Pin the version to ensure reproducible scores across systems.
+
+### 2) Run the Evaluator
 
 Use the same interface for all subtasks by switching `--task` and the JSON file paths.
 
 ```bash
 # Term Detection (EN word-level)
-python evaluation/eval.py --task detection --golden_set evaluation/subtask1_term_detection/golden_set.json --predictions evaluation/subtask1_term_detection/predictions.json
+python evaluation/eval.py \
+  --task detection \
+  --golden_set evaluation/subtask1_term_detection/golden_set.json \
+  --predictions evaluation/subtask1_term_detection/predictions.json
 
 # Term Correction (Exact Match)
-python evaluation/eval.py --task correction --golden_set evaluation/subtask2_term_correction/golden_set.json --predictions evaluation/subtask2_term_correction/predictions.json
+python evaluation/eval.py \
+  --task correction \
+  --golden_set evaluation/subtask2_term_correction/golden_set.json \
+  --predictions evaluation/subtask2_term_correction/predictions.json
 
 # End-to-End (Sentence BLEU/chrF; sentence-level mean only)
-python evaluation/eval.py --task end2end  --golden_set evaluation/subtask3_end2end/golden_set.json --predictions evaluation/subtask3_end2end/predictions.json
+python evaluation/eval.py \
+  --task end2end \
+  --golden_set evaluation/subtask3_end2end/golden_set.json \
+  --predictions evaluation/subtask3_end2end/predictions.json
 ```
 
 ---
@@ -71,10 +110,15 @@ Each JSON file can be **an object** or **an array of objects** (both are support
 
 ### Common Keys
 
-- `paragraph_id` *(int, required)*
-- `sentence_id` *(int, required)*
+| Key | Type | Required | Description |
+|---|---|---|---|
+| `paragraph_id` | int | ✅ | Paragraph identifier |
+| `sentence_id` | int | ✅ | Sentence identifier within paragraph |
 
-### Subtask 1 — Term Detection (EN word‑level)
+---
+
+### Subtask 1 — Term Detection (EN word-level)
+
 Gold and predictions both use **English spans** over the **source sentence**.
 
 **golden_set.json**
@@ -89,6 +133,7 @@ Gold and predictions both use **English spans** over the **source sentence**.
   ]
 }
 ```
+
 **predictions.json**
 ```json
 {
@@ -100,13 +145,18 @@ Gold and predictions both use **English spans** over the **source sentence**.
 }
 ```
 
-- Spans are interpreted as **half‑open** character ranges `[start, end)` in the `source_sentence`.
+- Spans are **half-open** character ranges `[start, end)` over `source_sentence`.
 - The evaluator normalizes spans (clamps to sentence length, fixes reversed indices, drops empty/invalid, deduplicates).
-- Tokens are detected with a Unicode `\w+` regex. Token labels (0/1) are derived by **strict interval overlap** with spans.
+- Tokens are detected with a Unicode `\w+` regex; token labels (0/1) are derived by **strict interval overlap** with spans.
 
 **Metrics printed**
-- **Macro** (mean across items): Precision / Recall / F1  
-- **Micro** (pooled over corpus): TP / FP / TN / FN + Precision / Recall / F1
+
+| Scope | Metrics |
+|---|---|
+| **Macro** (mean across items) | Precision / Recall / F1 |
+| **Micro** (pooled over corpus) | TP / FP / TN / FN + Precision / Recall / F1 |
+
+---
 
 ### Subtask 2 — Term Correction (Exact Match)
 
@@ -121,6 +171,7 @@ Gold and predictions both use **English spans** over the **source sentence**.
   ]
 }
 ```
+
 **predictions.json**
 ```json
 {
@@ -132,16 +183,21 @@ Gold and predictions both use **English spans** over the **source sentence**.
 }
 ```
 
-- Keys used for alignment per term: **(clamped `en_start`, `en_end`, normalized `en`)**.  
-- **Exact match** on the string value of `correction` (after normalization).
+- Alignment per term uses: **(clamped `en_start`, `en_end`, normalized `en`)**.
+- Scoring uses **exact match** on the `correction` string after normalization.
 
 **Metrics printed**
-- **Macro Accuracy** (mean per item)  
-- **Micro totals**: Correct / Total + Micro Accuracy
 
-### Subtask 3 — End‑to‑End (Sentence BLEU/chrF)
+| Scope | Metrics |
+|---|---|
+| **Macro** | Mean accuracy per item |
+| **Micro** | Correct / Total + Micro Accuracy |
 
-This repository’s *workshop edition* compares **only the edited target sentences** and reports **sentence-level means** (no corpus scores).
+---
+
+### Subtask 3 — End-to-End (Sentence BLEU / chrF)
+
+Compares **only the edited target sentences** and reports **sentence-level means** (no corpus scores).
 
 **golden_set.json**
 ```json
@@ -151,6 +207,7 @@ This repository’s *workshop edition* compares **only the edited target sentenc
   "edited_target_sentence": "Düzlem dalgaları, p-zarları, ..."
 }
 ```
+
 **predictions.json**
 ```json
 {
@@ -160,35 +217,39 @@ This repository’s *workshop edition* compares **only the edited target sentenc
 }
 ```
 
-**Fields used**
-- Gold: `edited_target_sentence`  
-- Pred: `edited_target_sentence`
-
 **Metrics printed**
-- `Mean_BLEU` — mean of **sentence BLEU** (sacrebleu) over all paired items  
-- `Mean_chrF` — mean of **sentence chrF** (sacrebleu) over all paired items
 
-> If either file lacks pairs after alignment or the sentences are missing, the evaluator prints a friendly message and exits.
+| Metric | Description |
+|---|---|
+| `Mean_BLEU` | Mean sentence BLEU (sacrebleu) over all paired items |
+| `Mean_chrF` | Mean sentence chrF (sacrebleu) over all paired items |
+
+> If either file lacks pairs after alignment or sentences are missing, the evaluator prints a descriptive message and exits.
 
 ---
 
 ## Design Notes
 
-- **Strict pairing**: `_pair_rows` enforces a 1:1 mapping by `(paragraph_id, sentence_id)`, errors on duplicates, extras, or missing entries.  
-- **Normalization**: text is NFKC‑normalized, lowercased, and whitespace‑collapsed; spans are clamped and deduped.  
-- **Tokenization** for detection uses `\w+` to get word spans and then converts span overlaps to token labels.  
-- **Robust I/O**: both arrays and single JSON objects are accepted (`as_list`).
+- **Strict pairing**: `_pair_rows` enforces a 1:1 mapping by `(paragraph_id, sentence_id)`, errors on duplicates, extras, or missing entries.
+- **Normalization**: text is NFKC-normalized, lowercased, and whitespace-collapsed; spans are clamped and deduped.
+- **Tokenization** for detection uses `\w+` to get word spans and then converts span overlaps to token labels.
+- **Robust I/O**: both arrays and single JSON objects are accepted via `as_list`.
 
 ---
 
 ## Examples
 
-Using the sample provided in the prompt (one pair only):
+Using the sample provided (one pair only):
 
 ```bash
-python evaluation/eval.py --task end2end  --golden_set evaluation/subtask3_end2end/golden_set.json --predictions evaluation/subtask3_end2end/predictions.json
+python evaluation/eval.py \
+  --task end2end \
+  --golden_set evaluation/subtask3_end2end/golden_set.json \
+  --predictions evaluation/subtask3_end2end/predictions.json
 ```
-Output (format):
+
+Expected output format:
+
 ```
 == End-to-End ==
 Items=1
@@ -200,17 +261,15 @@ Mean_chrF=...
 
 ## Troubleshooting
 
-~~- **“error: … requires sacrebleu”** — run `pip install sacrebleu`.  
-- **“duplicate … in golden_set/predictions”** — ensure each `(paragraph_id, sentence_id)` is unique per file.  
-- **“missing … in predictions” / “extra … in predictions”** — files must contain the **same set** of `(paragraph_id, sentence_id)`.  
-- **Zero items evaluated** — check that required fields (`term_pairs`, `edited_target_sentence`, etc.) are present for your task.~~
+| Error | Cause | Fix |
+|---|---|---|
+| `requires sacrebleu` | Package not installed | Run `pip install sacrebleu==2.4.3` |
+| `duplicate … in golden_set/predictions` | Repeated `(paragraph_id, sentence_id)` pair | Ensure each pair is unique per file |
+| `missing … in predictions` / `extra … in predictions` | Files have mismatched ID sets | Both files must contain the **exact same** set of `(paragraph_id, sentence_id)` |
+| Zero items evaluated | Required fields absent | Check that `term_pairs` or `edited_target_sentence` are present for your task |
 
 ---
-## Leaderboard
-<img width="940" height="1032" alt="image" src="https://github.com/user-attachments/assets/e7b3e4e8-c78c-4fbc-8f45-6e56dd89158b" />
-
 
 ## Contact
 
-For any questions regarding the shared task, please contact: sigturk2026.sharedtask@gmail.com
-# sigturk2026_sharedtask
+For questions regarding the shared task, please contact: **sigturk2026.sharedtask@gmail.com**
